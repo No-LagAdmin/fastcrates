@@ -25,13 +25,12 @@ local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 220, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -110, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Makes it movable
+MainFrame.Draggable = true 
 MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame)
 
--- TOP BAR / HEADER
+-- TOP BAR
 local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1, 0, 0, 30)
 TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -44,10 +43,10 @@ Title.BackgroundTransparency = 1
 Title.Text = "FAST CRATES"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.GothamBold
-title.TextSize = 14
+Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- MINIMIZE BUTTON
+-- MINIMIZE/MAXIMIZE
 local MinBtn = Instance.new("TextButton", TopBar)
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -30, 0, 0)
@@ -57,18 +56,25 @@ MinBtn.TextColor3 = Color3.new(1, 1, 1)
 MinBtn.TextSize = 20
 MinBtn.Font = Enum.Font.GothamBold
 
+-- FIXED SCROLLING FRAME
 local Scroll = Instance.new("ScrollingFrame", MainFrame)
 Scroll.Size = UDim2.new(1, -10, 1, -40)
 Scroll.Position = UDim2.new(0, 5, 0, 35)
 Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Scroll.ScrollBarThickness = 3
 Scroll.BorderSizePixel = 0
+Scroll.ZIndex = 5
 
 local List = Instance.new("UIListLayout", Scroll)
 List.Padding = UDim.new(0, 5)
 List.HorizontalAlignment = Enum.HorizontalAlignment.Center
+List.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- FORCE CANVAS UPDATE (The fix for empty lists)
+local function UpdateCanvas()
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, List.AbsoluteContentSize.Y + 10)
+end
+List:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
 
 -- MINIMIZE LOGIC
 local minimized = false
@@ -81,29 +87,31 @@ MinBtn.MouseButton1Click:Connect(function()
     else
         MainFrame:TweenSize(UDim2.new(0, 220, 0, 350), "Out", "Quart", 0.3, true)
         MinBtn.Text = "-"
-        task.wait(0.1)
+        task.wait(0.3)
         Scroll.Visible = true
+        UpdateCanvas()
     end
 end)
 
--- 4. BUTTON LOGIC
+-- 4. BUTTON GENERATION
 for _, crateName in pairs(fullCrateList) do
     local Btn = Instance.new("TextButton", Scroll)
     Btn.Size = UDim2.new(1, -10, 0, 30)
     Btn.Text = crateName
-    Btn.Font = Enum.Font.Gotham
+    Btn.Font = Enum.Font.GothamBold
     Btn.TextSize = 12
+    Btn.ZIndex = 6
     Instance.new("UICorner", Btn)
     
-    local function Update()
+    local function UpdateBtn()
         Btn.BackgroundColor3 = _G.ActiveSelections[crateName] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(30, 30, 30)
         Btn.TextColor3 = _G.ActiveSelections[crateName] and Color3.new(0,0,0) or Color3.new(1,1,1)
     end
 
-    Update()
+    UpdateBtn()
     Btn.MouseButton1Click:Connect(function()
         _G.ActiveSelections[crateName] = not _G.ActiveSelections[crateName]
-        Update()
+        UpdateBtn()
     end)
 end
 
@@ -122,3 +130,5 @@ task.spawn(function()
         task.wait(0.8) 
     end
 end)
+
+UpdateCanvas() -- Initial force update
