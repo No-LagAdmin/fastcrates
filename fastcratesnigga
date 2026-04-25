@@ -1,0 +1,78 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local remote = ReplicatedStorage.Events.Crate.open
+
+-- 1. DATA PERSISTENCE
+_G.ActiveSelections = _G.ActiveSelections or {} 
+
+local fullCrateList = {
+    "Hell", "Heaven", "Music", "Cyber", "Steampunk", "Graffiti", "Vampiric", "Construction", "Manga", "Samurai", 
+    "Royal", "Magma", "Ghost", "Abandoned", "Haunted", "Celestial", "Red Moon", "Vortex", "Cursed", "Devilous",
+    "Cage Bound", "Caged Energy", "Clockwork", "Coral", "Deep Sea", "DNA", "Enchanted Wood", "Foam", "Gear Work", 
+    "Green Lantern", "Honey", "Infernus", "Iron Bound", "Mirror", "Moss", "Purple Curse", "Rib", "Robo", "Rune", "Paper Talisman"
+}
+
+-- 2. CLEANUP PREVIOUS UI
+local oldUI = game:GetService("CoreGui"):FindFirstChild("Angelo_MultiCrate")
+if oldUI then oldUI:Destroy() end
+
+-- 3. UI SETUP
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "Angelo_MultiCrate"
+ScreenGui.DisplayOrder = 999
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 220, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+Scroll.Size = UDim2.new(1, -10, 1, -10)
+Scroll.Position = UDim2.new(0, 5, 0, 5)
+Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 0, #fullCrateList * 35)
+Scroll.ScrollBarThickness = 3
+
+local List = Instance.new("UIListLayout", Scroll)
+List.Padding = UDim.new(0, 5)
+
+-- 4. BUTTON LOGIC
+for _, crateName in pairs(fullCrateList) do
+    local Btn = Instance.new("TextButton", Scroll)
+    Btn.Size = UDim2.new(1, -10, 0, 30)
+    Btn.Text = crateName
+    
+    local function Update()
+        Btn.BackgroundColor3 = _G.ActiveSelections[crateName] and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(30, 30, 30)
+        Btn.TextColor3 = _G.ActiveSelections[crateName] and Color3.new(0,0,0) or Color3.new(1,1,1)
+    end
+
+    Update()
+    Btn.MouseButton1Click:Connect(function()
+        _G.ActiveSelections[crateName] = not _G.ActiveSelections[crateName]
+        Update()
+    end)
+end
+
+-- 5. THE MULTI-FIRE BYPASS (Fixed logic)
+task.spawn(function()
+    while true do
+        -- Iterate through all possible crates
+        for crateName, isEnabled in pairs(_G.ActiveSelections) do
+            if isEnabled then
+                -- SHOTGUN EFFECT: 
+                -- We spawn a separate thread for EVERY selected crate 
+                -- so they all fire simultaneously.
+                task.spawn(function()
+                    pcall(function()
+                        remote:InvokeServer(crateName, 6)
+                    end)
+                end)
+            end
+        end
+        
+        -- Wait 0.8s before firing the NEXT batch of all selected crates
+        task.wait(0.8) 
+    end
+end)
